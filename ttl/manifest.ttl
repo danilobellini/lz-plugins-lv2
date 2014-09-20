@@ -1,0 +1,8 @@
+@prefix lv2: <http://lv2plug.in/ns/lv2core#>.
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
+
+<http://github.com/danilobellini/lz-plugins-lv2/robotize>
+  a lv2:Plugin;
+  lv2:binary <lz-robotize.so> ;
+  rdfs:seeAlso <lz-robotize.ttl>.
+

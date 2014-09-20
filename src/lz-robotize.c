@@ -11,35 +11,31 @@
 #define SIZE 1024
 #define HOP 441
 
+typedef struct{
+  float *in, *out;
+  PyObject *ns,   /* Python "locals" namespace (dict) */
+           *sig,  /* Input changeable deque (signal) object */
+           *osig; /* Output Stream iterator (signal) object */
+} Plugin;
+
 typedef const LV2_Feature* const* ConstFeatures;
 
 /****************************************************************************/
 
-class Plugin{
-  public:
-    Plugin() {}
-    ~Plugin() {}
-    static LV2_Handle instantiate(const LV2_Descriptor*, double, const char*,
-                                  ConstFeatures);
-    static void activate(LV2_Handle){};
-    static void deactivate(LV2_Handle){};
-    static void connect_port(LV2_Handle, uint32_t, void *);
-    static void run(LV2_Handle, uint32_t);
-    static void cleanup(LV2_Handle);
-    static const void* extension_data(const char*){ return NULL; };
-
-  protected:
-    float *in, *out;
-    PyObject *ns = NULL,   // Python "locals" namespace (dict)
-             *sig = NULL,  // Input changeable deque (signal) object
-             *osig = NULL; // Output Stream iterator (signal) object
-};
+static LV2_Handle instantiate(const LV2_Descriptor*, double, const char*,
+                              ConstFeatures);
+static void activate(LV2_Handle instance){};
+static void deactivate(LV2_Handle instance){};
+static void connect_port(LV2_Handle, uint32_t, void *);
+static void run(LV2_Handle, uint32_t);
+static void cleanup(LV2_Handle);
+static const void* extension_data(const char* uri){ return NULL; };
 
 /****************************************************************************/
 
-LV2_Handle Plugin::instantiate(const LV2_Descriptor* descr,  double rate,
-                               const char* bpath, ConstFeatures features){
-  Plugin *plugin = new Plugin();
+static LV2_Handle instantiate(const LV2_Descriptor* descr,  double rate,
+                              const char* bpath, ConstFeatures features){
+  Plugin *plugin = (Plugin*)malloc(sizeof(Plugin));
   dlopen("libpython2.7.so",       // RTLD_GLOBAL avoids ImportError due to
          RTLD_GLOBAL | RTLD_NOW); // undefined symbols (needed for Numpy)
   Py_Initialize();
@@ -92,7 +88,7 @@ LV2_Handle Plugin::instantiate(const LV2_Descriptor* descr,  double rate,
 
 /****************************************************************************/
 
-void Plugin::connect_port(LV2_Handle instance, uint32_t port, void *data){
+static void connect_port(LV2_Handle instance, uint32_t port, void *data){
   Plugin *plugin = (Plugin*)instance;
   float **params[] = {&plugin->in, &plugin->out};
   *params[port] = (float*)data;
@@ -100,7 +96,7 @@ void Plugin::connect_port(LV2_Handle instance, uint32_t port, void *data){
 
 /****************************************************************************/
 
-void Plugin::run(LV2_Handle instance, uint32_t n){
+static void run(LV2_Handle instance, uint32_t n){
   Plugin *plugin = (Plugin*)instance;
   uint32_t i;
   PyObject *sample = NULL;
@@ -122,26 +118,20 @@ void Plugin::run(LV2_Handle instance, uint32_t n){
 
 /****************************************************************************/
 
-void Plugin::cleanup(LV2_Handle instance){
+static void cleanup(LV2_Handle instance){
   Plugin *plugin = (Plugin*)instance;
 
   Py_XDECREF(plugin->ns);
   Py_Finalize();
 
-  delete plugin;
+  free(plugin);
 }
 
 /****************************************************************************/
 
 static const LV2_Descriptor PluginDescr = {
-  PLUGIN_URI,
-  Plugin::instantiate,
-  Plugin::connect_port,
-  Plugin::activate,
-  Plugin::run,
-  Plugin::deactivate,
-  Plugin::cleanup,
-  Plugin::extension_data
+  PLUGIN_URI, instantiate, connect_port, activate,
+  run, deactivate, cleanup, extension_data
 };
 
 LV2_SYMBOL_EXPORT const LV2_Descriptor *lv2_descriptor(uint32_t idx){

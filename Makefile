@@ -8,8 +8,8 @@ PY_VERSION ?= 2.7
 SOURCE_PATH = src
 
 # C/C++ Language information
-SOURCE_EXT = cpp
-COMPILER = g++
+SOURCE_EXT = c
+COMPILER = gcc
 
 # Python-specific C API configuration
 PY_CONFIG = python$(PY_VERSION)-config

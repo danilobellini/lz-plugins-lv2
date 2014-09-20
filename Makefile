@@ -26,7 +26,9 @@ SOURCE_FILES = $(wildcard $(SOURCE_PATH)/*.$(SOURCE_EXT))
 NAMES = $(notdir $(basename $(SOURCE_FILES)))
 PLUGINS = $(NAMES:=.so)
 INSTALL_TARGET_PREFIX = install-
+UNINSTALL_TARGET_PREFIX = uninstall-
 INSTALL_NAMES = $(foreach name, $(NAMES), $(INSTALL_TARGET_PREFIX)$(name))
+UNINSTALL_NAMES = $(foreach name, $(NAMES), $(UNINSTALL_TARGET_PREFIX)$(name))
 
 # Compiler/linker parameters
 COMPILER_FLAGS = $(PY_INCLUDES) -Ofast -Wall -march=native -mtune=native -fPIC
@@ -58,4 +60,18 @@ $(INSTALL_NAMES): $(INSTALL_TARGET_PREFIX)%: %
 	cp ttl/manifest.ttl $(PLUGIN_PATH)
 	cp ttl/$(PLUGIN_NAME).ttl $(PLUGIN_PATH)
 
-.PHONY: all clean install $(INSTALL_NAMES)
+uninstall: $(UNINSTALL_NAMES)
+
+
+$(UNINSTALL_NAMES): PLUGIN_NAME = $(@:$(UNINSTALL_TARGET_PREFIX)%=%)
+$(UNINSTALL_NAMES): PLUGIN_PATH = $(INSTALL_PATH)/$(PLUGIN_NAME).lv2
+$(UNINSTALL_NAMES):
+	if [ -e $(PLUGIN_PATH) ]; \
+	then \
+		rm -f $(PLUGIN_PATH)/$(PLUGIN_NAME).so \
+		      $(PLUGIN_PATH)/ttl/manifest.ttl \
+		      $(PLUGIN_PATH)/ttl/$(PLUGIN_NAME).ttl ; \
+		rmdir -p --ignore-fail-on-non-empty $(PLUGIN_PATH) ; \
+	fi
+
+.PHONY: all clean install $(INSTALL_NAMES) uninstall $(UNINSTALL_NAMES)

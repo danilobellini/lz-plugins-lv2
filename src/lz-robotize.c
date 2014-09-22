@@ -1,6 +1,8 @@
-// Created on Fri 2014-09-19 05:22 BRT
-// License is GPLv3, see COPYING.txt for more details.
-// by Danilo J. S. Bellini
+/*
+ * Created on Fri 2014-09-19 05:22 BRT
+ * License is GPLv3, see COPYING.txt for more details.
+ * by Danilo J. S. Bellini
+ */
 #include "Python.h"
 #include "lv2.h"
 #include <dlfcn.h>
@@ -36,22 +38,21 @@ static const void* extension_data(const char* uri){ return NULL; };
 static LV2_Handle instantiate(const LV2_Descriptor* descr,  double rate,
                               const char* bpath, ConstFeatures features){
   Plugin *plugin = (Plugin*)malloc(sizeof(Plugin));
-  dlopen("libpython2.7.so",       // RTLD_GLOBAL avoids ImportError due to
-         RTLD_GLOBAL | RTLD_NOW); // undefined symbols (needed for Numpy)
+  dlopen("libpython2.7.so",       /* RTLD_GLOBAL avoids ImportError due to */
+         RTLD_GLOBAL | RTLD_NOW); /* undefined symbols (needed for Numpy)  */
   Py_Initialize();
   plugin->ns = PyDict_New();
 
-  // Namespace init
+  /* Namespace init */
   PyDict_SetItemString(plugin->ns, "__builtins__", PyEval_GetBuiltins());
   PyDict_SetItemString(plugin->ns, "size", PyInt_FromLong(SIZE));
   PyDict_SetItemString(plugin->ns, "hop", PyInt_FromLong(HOP));
 
-  // Build the AudioLazy effect (Python)
+  /* Build the AudioLazy effect (Python) */
   PyCompilerFlags flags = {CO_FUTURE_DIVISION};
   if(!PyRun_StringFlags(
     "\nfrom audiolazy import *"
     "\nfrom collections import deque"
-    "\nimport numpy" // To be removed afterwards
 
     "\nclass IterationChangeableDeque(deque):"
     "\n  __iter__ = lambda self: self"
@@ -66,10 +67,6 @@ static LV2_Handle instantiate(const LV2_Descriptor* descr,  double rate,
     "\nrobotize = stft(abs, size=size, hop=hop, wnd=wnd, ola_wnd=wnd, "
                       "before=None)"
     "\nosig = robotize(sig).__iter__()",
-//    "\ns, Hz = sHz(44100)"
-//    "\na = sinusoid(.2 * Hz)"
-//    "\nfilt = .5 * (1 - a * z ** -1)"
-//    "\nosig = filt(sig).__iter__()",
 
     Py_file_input, plugin->ns, plugin->ns, &flags
   )){
@@ -77,7 +74,7 @@ static LV2_Handle instantiate(const LV2_Descriptor* descr,  double rate,
     return NULL;
   }
 
-  // Now we've got both the I/O signals and the plugin
+  /* Now we've got both the I/O signals and the plugin */
   plugin->sig = PyDict_GetItemString(plugin->ns, "sig");
   plugin->osig = PyDict_GetItemString(plugin->ns, "osig");
 
@@ -101,14 +98,14 @@ static void run(LV2_Handle instance, uint32_t n){
   uint32_t i;
   PyObject *sample = NULL;
 
-  // Put samples in the input buffer signal ("sig" deque)
+  /* Put samples in the input buffer signal ("sig" deque) */
   for (i = 0; i < n; i++)
     PyObject_CallMethod(plugin->sig, (char *)"append",
                         (char *)"f", plugin->in[i]);
 
   if(PyErr_Occurred()){ PyErr_Print(); exit(1); }
 
-  // Get samples from the output signal ("osig" Stream iterator)
+  /* Get samples from the output signal ("osig" Stream iterator) */
   for (i = 0; i < n; i++){
     sample = PyObject_CallMethod(plugin->osig, (char *)"next", (char *)NULL);
     plugin->out[i] = (float)PyFloat_AS_DOUBLE(sample);

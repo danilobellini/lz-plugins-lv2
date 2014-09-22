@@ -31,14 +31,30 @@ static LV2_Handle instantiate(const LV2_Descriptor* descr, double rate,
   Py_Initialize();
   plugin->ns = PyDict_New();
 
+  return (LV2_Handle)plugin;
+}
+
+/****************************************************************************/
+
+static void connect_port(LV2_Handle instance, uint32_t port, void *data){
+  Plugin *plugin = (Plugin*)instance;
+  float **params[] = {&plugin->in, &plugin->out};
+  *params[port] = (float*)data;
+}
+
+/****************************************************************************/
+
+static void activate(LV2_Handle instance){
+  Plugin *plugin = (Plugin*)instance;
+  PyCompilerFlags flags = {CO_FUTURE_DIVISION};
+
   /* Namespace init */
   PyDict_SetItemString(plugin->ns, "__builtins__", PyEval_GetBuiltins());
   PyDict_SetItemString(plugin->ns, "size", PyInt_FromLong(SIZE));
   PyDict_SetItemString(plugin->ns, "hop", PyInt_FromLong(HOP));
 
   /* Build the AudioLazy effect (Python) */
-  PyCompilerFlags flags = {CO_FUTURE_DIVISION};
-  if(!PyRun_StringFlags(
+  PyRun_StringFlags(
     "\nfrom audiolazy import *"
     "\nfrom collections import deque"
 
@@ -56,33 +72,18 @@ static LV2_Handle instantiate(const LV2_Descriptor* descr, double rate,
                       "before=None)"
     "\nosig = robotize(sig).__iter__()",
 
-    Py_file_input, plugin->ns, plugin->ns, &flags
-  )){
-    PyErr_Print();
-    return NULL;
-  }
+    Py_file_input, /* Multi-statement */
+    plugin->ns,    /* Globals */
+    plugin->ns,    /* Locals */
+    &flags
+  );
+  if(PyErr_Occurred()){ PyErr_Print(); exit(1); }
 
   /* Now we've got both the I/O signals and the plugin */
   plugin->sig = PyDict_GetItemString(plugin->ns, "sig");
   plugin->osig = PyDict_GetItemString(plugin->ns, "osig");
-
-  if(!PyErr_Occurred()) return (LV2_Handle)plugin;
-  PyErr_Print();
-  return NULL;
+  if(PyErr_Occurred()){ PyErr_Print(); exit(1); }
 }
-
-/****************************************************************************/
-
-static void connect_port(LV2_Handle instance, uint32_t port, void *data){
-  Plugin *plugin = (Plugin*)instance;
-  float **params[] = {&plugin->in, &plugin->out};
-  *params[port] = (float*)data;
-}
-
-/****************************************************************************/
-
-static void activate(LV2_Handle instance){
-};
 
 /****************************************************************************/
 
@@ -106,7 +107,10 @@ static void run(LV2_Handle instance, uint32_t n){
 /****************************************************************************/
 
 static void deactivate(LV2_Handle instance){
-};
+  Plugin *plugin = (Plugin*)instance;
+  PyDict_Clear(plugin->ns);
+  if(PyErr_Occurred()){ PyErr_Print(); exit(1); }
+}
 
 /****************************************************************************/
 

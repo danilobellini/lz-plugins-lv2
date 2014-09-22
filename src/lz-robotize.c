@@ -20,23 +20,11 @@ typedef struct{
            *osig; /* Output Stream iterator (signal) object */
 } Plugin;
 
-typedef const LV2_Feature* const* ConstFeatures;
-
 /****************************************************************************/
 
-static LV2_Handle instantiate(const LV2_Descriptor*, double, const char*,
-                              ConstFeatures);
-static void activate(LV2_Handle instance){};
-static void deactivate(LV2_Handle instance){};
-static void connect_port(LV2_Handle, uint32_t, void *);
-static void run(LV2_Handle, uint32_t);
-static void cleanup(LV2_Handle);
-static const void* extension_data(const char* uri){ return NULL; };
-
-/****************************************************************************/
-
-static LV2_Handle instantiate(const LV2_Descriptor* descr,  double rate,
-                              const char* bpath, ConstFeatures features){
+static LV2_Handle instantiate(const LV2_Descriptor* descr, double rate,
+                              const char* bpath,
+                              const LV2_Feature* const* features){
   Plugin *plugin = (Plugin*)malloc(sizeof(Plugin));
   dlopen("libpython2.7.so",       /* RTLD_GLOBAL avoids ImportError due to */
          RTLD_GLOBAL | RTLD_NOW); /* undefined symbols (needed for Numpy)  */
@@ -93,6 +81,11 @@ static void connect_port(LV2_Handle instance, uint32_t port, void *data){
 
 /****************************************************************************/
 
+static void activate(LV2_Handle instance){
+};
+
+/****************************************************************************/
+
 static void run(LV2_Handle instance, uint32_t n){
   Plugin *plugin = (Plugin*)instance;
   uint32_t i;
@@ -115,13 +108,22 @@ static void run(LV2_Handle instance, uint32_t n){
 
 /****************************************************************************/
 
+static void deactivate(LV2_Handle instance){
+};
+
+/****************************************************************************/
+
 static void cleanup(LV2_Handle instance){
   Plugin *plugin = (Plugin*)instance;
-
   Py_XDECREF(plugin->ns);
   Py_Finalize();
-
   free(plugin);
+}
+
+/****************************************************************************/
+
+static const void *extension_data(const char* uri){
+  return NULL;
 }
 
 /****************************************************************************/

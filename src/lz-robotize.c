@@ -93,14 +93,11 @@ static void run(LV2_Handle instance, uint32_t n){
 
   /* Put samples in the input buffer signal ("sig" deque) */
   for (i = 0; i < n; i++)
-    PyObject_CallMethod(plugin->sig, (char *)"append",
-                        (char *)"f", plugin->in[i]);
-
-  if(PyErr_Occurred()){ PyErr_Print(); exit(1); }
+    PyObject_CallMethod(plugin->sig, "append", "f", plugin->in[i]);
 
   /* Get samples from the output signal ("osig" Stream iterator) */
   for (i = 0; i < n; i++){
-    sample = PyObject_CallMethod(plugin->osig, (char *)"next", (char *)NULL);
+    sample = PyObject_CallMethod(plugin->osig, "next", NULL);
     plugin->out[i] = (float)PyFloat_AS_DOUBLE(sample);
     Py_DECREF(sample);
   }

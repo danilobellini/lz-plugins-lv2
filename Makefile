@@ -17,17 +17,23 @@ PY_INCLUDES = $(shell $(PY_CONFIG) --includes)
 PY_LDLIBS = $(shell $(PY_CONFIG) --libs)
 PY_PREFIX = $(shell $(PY_CONFIG) --prefix)
 
-# Install path: global when running with sudo, and local otherwise
+# Install path, with many locations possible. Uses $(DESTDIR) and $(prefix)
+# conventions. Installs globally when running with sudo, and locally otherwise
 PREFIX = $(or $(prefix), $(PY_PREFIX), /usr/local)
-INSTALL_PATH = $(if $(filter $(USER), root), $(PREFIX)/lib/lv2, $(HOME)/.lv2)
+DEFAULT_PATH = $(if $(filter $(USER), root),$(PREFIX)/lib/lv2,$(HOME)/.lv2)
+INSTALL_PATH = $(or $(DESTDIR), $(DEFAULT_PATH))
 
 # File and plugin names
 SOURCE_FILES = $(wildcard $(SOURCE_PATH)/*.$(SOURCE_EXT))
 NAMES = $(notdir $(basename $(SOURCE_FILES)))
 PLUGINS = $(NAMES:=.so)
+
+# Install information
 INSTALL_TARGET_PREFIX = install-
-UNINSTALL_TARGET_PREFIX = uninstall-
 INSTALL_NAMES = $(foreach name, $(NAMES), $(INSTALL_TARGET_PREFIX)$(name))
+
+# Uninstall information
+UNINSTALL_TARGET_PREFIX = uninstall-
 UNINSTALL_NAMES = $(foreach name, $(NAMES), $(UNINSTALL_TARGET_PREFIX)$(name))
 
 # Compiler/linker parameters
@@ -61,15 +67,20 @@ $(INSTALL_NAMES): $(INSTALL_TARGET_PREFIX)%: %
 
 uninstall: $(UNINSTALL_NAMES)
 
+define do_uninstall
+	rm -f $(PLUGIN_PATH)/$(PLUGIN_NAME).so
+	rm -f $(PLUGIN_PATH)/manifest.ttl
+	rmdir --ignore-fail-on-non-empty $(PLUGIN_PATH)
+endef
+
+define cant_uninstall
+	@echo "Can't uninstall '$(PLUGIN_PATH)' as it doesn't exist"
+endef
 
 $(UNINSTALL_NAMES): PLUGIN_NAME = $(@:$(UNINSTALL_TARGET_PREFIX)%=%)
 $(UNINSTALL_NAMES): PLUGIN_PATH = $(INSTALL_PATH)/$(PLUGIN_NAME).lv2
+$(UNINSTALL_NAMES): PLUGIN_PATH_EXISTS = $(wildcard $(PLUGIN_PATH))
 $(UNINSTALL_NAMES):
-	if [ -e $(PLUGIN_PATH) ]; \
-	then \
-		rm -f $(PLUGIN_PATH)/$(PLUGIN_NAME).so \
-		      $(PLUGIN_PATH)/manifest.ttl \
-		rmdir -p --ignore-fail-on-non-empty $(PLUGIN_PATH) ; \
-	fi
+	$(if $(PLUGIN_PATH_EXISTS), $(do_uninstall), $(cant_uninstall))
 
 .PHONY: all clean install $(INSTALL_NAMES) uninstall $(UNINSTALL_NAMES)

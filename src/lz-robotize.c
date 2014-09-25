@@ -13,8 +13,8 @@
 #define SIZE 1024
 #define HOP 441
 
-typedef struct{
-  float *in, *out;
+typedef struct{    /* MUST start with the ports pointers! */
+  float *in, *out; /* Plugin ports in the lv2:port index order */
   PyObject *ns,   /* Python "locals" namespace (dict) */
            *sig,  /* Input changeable deque (signal) object */
            *osig; /* Output Stream iterator (signal) object */
@@ -37,9 +37,7 @@ static LV2_Handle instantiate(const LV2_Descriptor* descr, double rate,
 /****************************************************************************/
 
 static void connect_port(LV2_Handle instance, uint32_t port, void *data){
-  Plugin *plugin = (Plugin*)instance;
-  float **params[] = {&plugin->in, &plugin->out};
-  *params[port] = (float*)data;
+  ((float**)instance)[port] = (float*)data;
 }
 
 /****************************************************************************/

@@ -38,4 +38,6 @@
     lv2:index 1;
     lv2:symbol "Out";
     lv2:name "Out";
-  ].
+  ];
+
+  lv2:binary <lz-robotize.so>.

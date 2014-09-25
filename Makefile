@@ -57,8 +57,7 @@ $(INSTALL_NAMES): PLUGIN_PATH = $(INSTALL_PATH)/$(PLUGIN_NAME).lv2
 $(INSTALL_NAMES): $(INSTALL_TARGET_PREFIX)%: %
 	mkdir -p $(PLUGIN_PATH)
 	cp $(PLUGIN_NAME).so $(PLUGIN_PATH)
-	cp ttl/manifest.ttl $(PLUGIN_PATH)
-	cp ttl/$(PLUGIN_NAME).ttl $(PLUGIN_PATH)
+	cp ttl/$(PLUGIN_NAME).ttl $(PLUGIN_PATH)/manifest.ttl
 
 uninstall: $(UNINSTALL_NAMES)
 
@@ -69,8 +68,7 @@ $(UNINSTALL_NAMES):
 	if [ -e $(PLUGIN_PATH) ]; \
 	then \
 		rm -f $(PLUGIN_PATH)/$(PLUGIN_NAME).so \
-		      $(PLUGIN_PATH)/ttl/manifest.ttl \
-		      $(PLUGIN_PATH)/ttl/$(PLUGIN_NAME).ttl ; \
+		      $(PLUGIN_PATH)/manifest.ttl \
 		rmdir -p --ignore-fail-on-non-empty $(PLUGIN_PATH) ; \
 	fi
 

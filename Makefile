@@ -45,7 +45,7 @@ LDLIBS = $(PY_LDLIBS)
 
 all: $(NAMES)
 
-$(NAMES): %: %.so
+$(NAMES): %: %.so $(SOURCE_PATH)/%.ttl
 
 %.so: $(SOURCE_PATH)/%.o
 	$(COMPILER) -o $@ $(LDFLAGS) $< $(LDLIBS)
@@ -53,8 +53,13 @@ $(NAMES): %: %.so
 %.o: %.$(SOURCE_EXT)
 	$(COMPILER) -c $(COMPILER_FLAGS) -o $@ $<
 
+%.ttl: %.py
+	lz2lv2 ttl $<
+
+clean: O_FILES = $(SOURCE_FILES:.$(SOURCE_EXT)=.o)
+clean: TTL_FILES = $(SOURCE_FILES:.$(SOURCE_EXT)=.ttl)
 clean:
-	rm -f $(SOURCE_FILES:.$(SOURCE_EXT)=.o) $(PLUGINS)
+	rm -f $(O_FILES) $(TTL_FILES) $(PLUGINS)
 
 install: $(INSTALL_NAMES)
 
@@ -63,7 +68,7 @@ $(INSTALL_NAMES): PLUGIN_PATH = $(INSTALL_PATH)/$(PLUGIN_NAME).lv2
 $(INSTALL_NAMES): $(INSTALL_TARGET_PREFIX)%: %
 	mkdir -p $(PLUGIN_PATH)
 	cp $(PLUGIN_NAME).so $(PLUGIN_PATH)
-	cp ttl/$(PLUGIN_NAME).ttl $(PLUGIN_PATH)/manifest.ttl
+	cp $(SOURCE_PATH)/$(PLUGIN_NAME).ttl $(PLUGIN_PATH)/manifest.ttl
 
 uninstall: $(UNINSTALL_NAMES)
 
